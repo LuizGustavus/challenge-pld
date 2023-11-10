@@ -55,9 +55,3 @@ while true; do
         sleep 3
     fi
 done
-
-port=$(kubectl get svc postgres-service -o=jsonpath='{.spec.ports[0].nodePort}')
-node_ip=$(kubectl get nodes -o wide | awk '{if (NR>1) print $6}')
-
-PGPASSWORD=postgres psql -h $node_ip -p $port -U postgres -d crypto_ethereum -c "CREATE TABLE tokens (address TEXT,symbol TEXT,name TEXT,decimals NUMERIC,total_supply NUMERIC,block_timestamp TIMESTAMP,block_number INT,block_hash TEXT,block TEXT);"
-

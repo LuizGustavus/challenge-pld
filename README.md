@@ -26,13 +26,9 @@ Certifique-se de ter os seguintes itens instalados antes de começar (consideran
 
    - [Instalação do kubectl no Ubuntu](https://kubernetes.io/docs/tasks/tools/install-kubectl-linux/)
 
-5. **pip:**
+5. **Google Cloud Platform (GCP):**
 
-   - [Instalação do pip](https://pip.pypa.io/en/stable/installation/)
-
-6. **psql:**
-
-   - [Instalação do psql com pip](https://pypi.org/project/postgres/)
+   - Certifique-se de ter uma conta no Google Cloud Platform que possa realizar consultas utilizando o BigQuery. Caso não tenha uma conta, você pode criar uma [aqui](https://cloud.google.com/).
 
 # Configuração
 
@@ -51,7 +47,13 @@ cd challenge-pld
 cd aws-mwaa-local-runner
 ```
 
-### 2.2 Execute o ambiente Apache Airflow local:
+### 2.2 Buildar a Docker imagem Apache Airflow do projeto:
+
+```bash
+./mwaa-local-env build-image
+```
+
+### 2.3 Execute o ambiente Apache Airflow local:
 
 OBS: Certifique-se de não ter nenhuma aplicação rodando na porta 8080.
 
@@ -63,15 +65,63 @@ Com isso, você terá o Apache Airflow rodando localmente em um _contêiner_ Doc
 
 ### ATENÇÃO: Ao finalizar esta etapa, seu terminal ficará preso recebendo logs do _contêiner_ que está executando o Airflow. Para as próximas etapas, abra um novo terminal no diretório origem deste projeto.
 
-## 3. Execute localmente um cluster Kubernetes com um banco Postgres para receber os dados:
+## 3. Configure Credenciais de Serviço para o Google Cloud Platform (GCP)
 
-### 3.1 Entre no diretório k8s:
+Para interagir com os serviços do Google Cloud Platform, é necessário obter credenciais de serviço. Siga os passos abaixo para criar e baixar um arquivo JSON contendo as credenciais.
+
+- Acesse o Console do Google Cloud Platform em [https://console.cloud.google.com/](https://console.cloud.google.com/).
+
+- Antes de começar, selecione ou crie um projeto no Console do Google Cloud Platform. Isso pode ser feito no [Painel de Controle do GCP](https://console.cloud.google.com/project).
+
+- No canto superior direito, clique na sua conta e selecione "IAM e Admin" no menu.
+
+- No painel de navegação à esquerda, selecione "Service accounts" (Contas de serviço).
+
+- Clique em "Create Service Account" (Criar conta de serviço).
+
+- Preencha o formulário:
+
+  - Escolha um nome para a conta de serviço.
+  - Adicione uma descrição opcional.
+  - Clique em "Create".
+
+- Na seção "Grant this service account access to project" (Conceder acesso a este serviço à conta do projeto), atribua as permissões necessárias à conta de serviço. Conceda a permissão de "BigQuery Admin".
+
+- Clique em "Continue" e depois em "Done" (Concluir).
+
+- Na lista de contas de serviço, encontre a conta que você acabou de criar e clique em "Actions" (Ações) ao lado dela.
+
+- Selecione "Create Key" (Criar chave).
+
+- Escolha o formato da chave como "JSON" e clique em "Create".
+
+- O arquivo JSON contendo as credenciais será baixado para o seu computador.
+
+- Abra o arquivo JSON baixado (provavelmente chamado algo como `sua-conta-de-servico-<ID>.json`) em um editor de texto.
+
+- Selecione e copie todo o conteúdo do arquivo.
+
+- Navegue até o diretório do projeto onde estão localizados seus arquivos de configuração do Kubernetes, especificamente dentro da pasta `contratos-inteligentes/config` no diretório `k8s`.
+
+- Abra o arquivo [`credentials.json`] em um editor de texto e cole o conteúdo copiado do arquivo JSON baixado.
+
+- Salve o arquivo [`credentials.json`].
+
+Agora, você tem as credenciais de serviço necessárias no arquivo `credentials.json` dentro da estrutura de diretórios especificada. Essas credenciais serão utilizadas para extração de dados do seguinte dataset público e gratuito no BigQuery:
+
+- Projeto: “bigquery-public-data”
+- Dataset: “crypto_ethereum”
+- Tabela: “tokens”
+
+## 4. Execute localmente um cluster Kubernetes com um banco Postgres para receber os dados:
+
+### 4.1 Entre no diretório k8s:
 
 ```bash
 cd k8s
 ```
 
-### 3.2 Execute o _script_ [init.sh](https://github.com/LuizGustavus/challenge-pld/blob/main/k8s/init.sh) para criar o cluster Kubernetes local com o banco Postgres:
+### 4.2 Execute o _script_ [init.sh](https://github.com/LuizGustavus/challenge-pld/blob/main/k8s/init.sh) para criar o cluster Kubernetes local com o banco Postgres:
 
 ```bash
 bash init.sh
@@ -83,16 +133,16 @@ Além disso, o script também criará todos os manifestos necessários para a ex
 
 Por fim, o script também se encarregará de criar a tabela `tokens` no Postgres, a qual será responsável por receber os dados da solução.
 
-OBS: Neste momento, você terá o cluster e o Airflow em execução.
+OBS: Neste momento, você terá o cluster Kubernets e o Airflow em execução.
 
-## 4. Configure o Airflow para se comunicar com o cluster Kubernetes:
+## 5. Configure o Airflow para se comunicar com o cluster Kubernetes:
 
 - Acesse a interface web do Airflow através da URL [0.0.0.0:8080](http://0.0.0.0:8080).
 - Faça login com o usuário predefinido:
   - Username: **admin**
   - Password: **test**
 - Na aba Admin -> Connections, encontre o item kubernetes_default e clique para editar.
-- No campo ***Kube config (JSON format)***, insira o conteúdo do arquivo [kubeconfig.json](https://github.com/LuizGustavus/challenge-pld/blob/main/k8s/kubeconfig.json) gerado na etapa anterior e salve.
+- No campo **_Kube config (JSON format)_**, insira o conteúdo do arquivo [kubeconfig.json](https://github.com/LuizGustavus/challenge-pld/blob/main/k8s/kubeconfig.json) gerado na etapa anterior e salve.
 - Associe o _contêiner_ do Airflow à _network_ do Kubernetes, executando o seguinte comando em seu terminal:
 
 ```bash
