@@ -1,8 +1,6 @@
 kind create cluster --config ./manifests/kind-config.yaml
 
-kubectl config view --minify --raw -o json > ./kubeconfig.json
-
-sed -i '/127.0.0.1/c\"server": "https://kind-control-plane:6443",' ./kubeconfig.json
+kubectl config view --minify --raw -o json | sed -e 's#https://127.0.0.1.*#https://kind-control-plane:6443",#' > ./kubeconfig.json
 
 kubectl apply -f ./manifests/pv.yaml
 kubectl apply -f ./manifests/pvc.yaml
@@ -55,3 +53,5 @@ while true; do
         sleep 3
     fi
 done
+
+echo "Cluster Kubernetes is ready"

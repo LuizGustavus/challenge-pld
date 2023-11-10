@@ -4,7 +4,7 @@
 
 Este repositório contém a solução para o [desafio de migração de dados de contratos inteligentes](https://github.com/LuizGustavus/challenge-pld/blob/main/Desafio_para_time_de_PLD.pdf) usando Kubernetes e Docker Engine. O objetivo é criar uma DAG (Directed Acyclic Graph) que lê dados de contratos inteligentes do BigQuery e os migra para um banco Postgres local em um cluster Kubernetes. Como solicitado nas instruções do desafio, o Airflow utilizado foi criado a partir das instruções do projeto [mwaa-local-runner](https://github.com/aws/aws-mwaa-local-runner).
 
-Obs: A solução proposta considera a utilização de um ambiente Linux
+Observação: A solução apresentada leva em consideração a utilização em ambientes Linux ou macOS.
 
 # Pré-requisitos
 
@@ -29,6 +29,10 @@ Certifique-se de ter os seguintes itens instalados antes de começar (consideran
 5. **Google Cloud Platform (GCP):**
 
    - Certifique-se de ter uma conta no Google Cloud Platform que possa realizar consultas utilizando o BigQuery. Caso não tenha uma conta, você pode criar uma [aqui](https://cloud.google.com/).
+
+## Observação para usuários macOS:
+
+- Para usuários do macOS, você pode instalar as ferramentas mencionadas acima utilizando ferramentas como Homebrew. Certifique-se de consultar a documentação oficial para obter instruções específicas para macOS.
 
 # Configuração
 
@@ -142,14 +146,19 @@ OBS: Neste momento, você terá o cluster Kubernets e o Airflow em execução.
   - Username: **admin**
   - Password: **test**
 - Na aba Admin -> Connections, encontre o item kubernetes_default e clique para editar.
-- No campo **_Kube config (JSON format)_**, insira o conteúdo do arquivo [kubeconfig.json](https://github.com/LuizGustavus/challenge-pld/blob/main/k8s/kubeconfig.json) gerado na etapa anterior e salve.
+- No campo **_Kube config (JSON format)_**, insira o conteúdo do arquivo `kubeconfig.json` (dentro do diretório `k8s`) gerado na etapa anterior e salve.
 - Associe o _contêiner_ do Airflow à _network_ do Kubernetes, executando o seguinte comando em seu terminal:
 
 ```bash
 docker network connect kind aws-mwaa-local-runner-2_6_local-runner_1
 ```
 
-OBS: Caso encontre algum erro nessa estapa será necessário verificar qual é a _netowork_ que Docker _contêiner_ com o cluster Kubernets está (deveria ser **kind**) e também verificar o nome do _contêiner_ que está rodando o Airflow (deveria ser **aws-mwaa-local-runner-2_6_local-runner_1**).
+OBS: Caso encontre algum erro nessa estapa será necessário verificar qual é a _network_ que Docker _contêiner_ com o cluster Kubernets está (deveria ser algo como **kind**) e também verificar o nome do _contêiner_ que está rodando o Airflow (deverá ser algo como **aws-mwaa-local-runner-2_6_local-runner_1**). Utilize os comandos abaixo para conseguir a listagem de todos os containers rodando e de todas as _networks_.
+
+```bash
+docker ps
+docker network ls
+```
 
 # Executando a Solução
 
@@ -169,6 +178,24 @@ Para verificar e acompanhar a execução da solução, siga os passos abaixo:
    - `load_data`: Tarefa responsável pelo carregamento dos dados no banco Postgres.
 
 Estes passos permitirão que você monitore e analise detalhadamente cada etapa da execução da DAG `migracao_contratos`.
+
+Para verificar os dados inseridos no banco de dados PostgreSQL no cluster Kubernetes, conecte-se ao banco PostgreSQL local. Para fazer isso, exponha o banco localmente usando o seguinte comando:
+
+```bash
+kubectl port-forward service/postgres-service 5432:5432
+```
+
+Esse comando vinculará a porta local 5432 à porta 5432 do serviço PostgreSQL, permitindo a conexão local.
+
+Após executar o comando, seu terminal ficará ocupado. Nesse ponto, abra sua ferramenta de visualização de banco de dados favorita. Conecte-se ao banco de dados `crypto_ethereum` usando as seguintes credenciais:
+
+ - Usuário: **postgres**
+ - Senha: **postgres**
+ - Host: **localhost**
+ - Porta: **5432**
+
+Agora, você pode executar consultas na tabela `tokens` (schema `public`) para examinar os dados inseridos na tabela.
+
 
 # Estrutura do Projeto
 
